@@ -64,7 +64,7 @@ jobs:
       - name: Push Policyfile to dev
         run: |
           echo "Pushing policy lock file to ${CHEF_SERVER_ORG_URL} using .chef_config"
-          chef push dev Policyfile.rb --config .chef_config
+          chef push dev Policyfile.lock.json --config .chef_config
         env:
           CHEF_LICENSE: accept-no-persist
           CHEF_SERVER_ORG_URL: ${{ vars.DEVOPS_CHEF_SERVER_ORG_URL }}
