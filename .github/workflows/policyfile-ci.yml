@@ -1,0 +1,76 @@
+name: Chef Policyfile CI
+
+on:
+  workflow_call:
+    inputs:
+      platform:
+        required: false
+        type: string
+        default: "ubuntu-latest"
+      chef_workstation_version:
+        required: false
+        type: string
+        default: "latest"
+
+jobs:
+  kitchen-test:
+    runs-on: ${{ inputs.platform }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install Chef Workstation
+        uses: actionshub/chef-install@3.0.0
+        with:
+          version: ${{ inputs.chef_workstation_version }}
+
+      - name: Run Kitchen Test
+        run: kitchen test
+        env:
+          CHEF_LICENSE: accept-no-persist
+          KITCHEN_LOCAL_YAML: kitchen.dokken.yml
+
+  generate-and-push:
+    needs: kitchen-test
+    runs-on: ${{ inputs.platform }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install Chef Workstation
+        uses: actionshub/chef-install@3.0.0
+        with:
+          version: ${{ inputs.chef_workstation_version }}
+
+      - name: Generate Policyfile.lock.json
+        run: chef install
+        env:
+          CHEF_LICENSE: accept-no-persist
+
+      - name: Write Chef config
+        env:
+          CHEF_CI_PEM: ${{ secrets.CHEF_CI_PEM }}
+          CICD_PEM: ${{ vars.DEVOPS_CICD_PEM }}
+          CICD_USER: ${{ vars.DEVOPS_CICD_USER }}
+          CHEF_SERVER_ORG_URL: ${{ vars.DEVOPS_CHEF_SERVER_ORG_URL }}
+        run: |
+          echo "$CHEF_CI_PEM" | tr -d '\r' > "$CICD_PEM"
+          cat > .chef_config <<EOF
+          chef_server_url   "${CHEF_SERVER_ORG_URL}"
+          node_name         "${CICD_USER}"
+          client_key        "${CICD_PEM}"
+          EOF
+
+      - name: Push Policyfile to dev
+        run: |
+          echo "Pushing policy lock file to ${CHEF_SERVER_ORG_URL} using .chef_config"
+          chef push dev Policyfile.lock.json --config .chef_config
+        env:
+          CHEF_LICENSE: accept-no-persist
+          CHEF_SERVER_ORG_URL: ${{ vars.DEVOPS_CHEF_SERVER_ORG_URL }}
+          CICD_USER: ${{ vars.DEVOPS_CICD_USER }}
+          CICD_PEM: ${{ vars.DEVOPS_CICD_PEM }}
+
+      - name: Cleanup
+        if: always()
+        run: rm -f "${{ vars.DEVOPS_CICD_PEM }}" .chef_config
