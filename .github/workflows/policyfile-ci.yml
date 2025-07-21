@@ -2,34 +2,40 @@ name: Chef Policyfile CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  kitchen-and-push:
+  kitchen-test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out code
         uses: actions/checkout@v4
 
       - name: Install Chef Workstation
         uses: actionshub/chef-install@3.0.0
-        
+
       - name: Run Kitchen Test
         run: kitchen test
         env:
           CHEF_LICENSE: accept-no-persist
           KITCHEN_LOCAL_YAML: kitchen.dokken.yml
 
+  generate-and-push:
+    needs: kitchen-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install Chef Workstation
+        uses: actionshub/chef-install@3.0.0
+
       - name: Generate Policyfile.lock.json
-        if: success()
-        
         run: chef install
         env:
           CHEF_LICENSE: accept-no-persist
 
-      - name: Write Chef CI key and config
+      - name: Write Chef config
         env:
           CHEF_CI_PEM: ${{ secrets.CHEF_CI_PEM }}
           CICD_PEM: ${{ vars.DEVOPS_CICD_PEM }}
@@ -37,7 +43,6 @@ jobs:
           CHEF_SERVER_ORG_URL: ${{ vars.DEVOPS_CHEF_SERVER_ORG_URL }}
         run: |
           echo "$CHEF_CI_PEM" | tr -d '\r' > "$CICD_PEM"
-          
           cat > .chef_config <<EOF
           chef_server_url   "${CHEF_SERVER_ORG_URL}"
           node_name         "${CICD_USER}"
@@ -45,18 +50,15 @@ jobs:
           EOF
 
       - name: Push Policyfile to dev
-        if: success()
+        run: |
+          echo "Pushing policy lock file to ${CHEF_SERVER_ORG_URL} using .chef_config"
+          chef push dev Policyfile.rb --config .chef_config
         env:
           CHEF_LICENSE: accept-no-persist
           CHEF_SERVER_ORG_URL: ${{ vars.DEVOPS_CHEF_SERVER_ORG_URL }}
           CICD_USER: ${{ vars.DEVOPS_CICD_USER }}
           CICD_PEM: ${{ vars.DEVOPS_CICD_PEM }}
-        run: |
-          echo "Pushing policy lock file to ${CHEF_SERVER_ORG_URL} using .chef_config"
-          chef push dev Policyfile.rb --config .chef_config --debug
 
-      - name: Cleanup sensitive files
+      - name: Cleanup
         if: always()
-        env:
-          CICD_PEM: ${{ vars.DEVOPS_CICD_PEM }}
-        run: rm -f "$CICD_PEM" .chef_config
+        run: rm -f "${{ vars.DEVOPS_CICD_PEM }}" .chef_config
