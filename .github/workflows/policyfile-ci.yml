@@ -1,20 +1,34 @@
-name: Chef Policyfile CI
+---
+name: Push Policyfile to Chef Server
 
 on:
   workflow_call:
     inputs:
-      platform:
+      chef_server_org_url:
+        required: true
+        type: string
+        description: "The Chef Server Organization URL"
+      chef_user:
+        required: true
+        type: string
+        description: " The Chef User ID"
+      chef_pem_path:
         required: false
         type: string
-        default: "ubuntu-latest"
-      chef_workstation_version:
+        description: "Where to save the temporary PEM file"
+      policy_name:
         required: false
         type: string
-        default: "latest"
+        default: "dev"
+        description: "The policy group to push to (default: dev)"
+    secrets:
+      chef_ci_pem:
+        required: true
+        description: "The content of the PEM key"
 
 jobs:
-  kitchen-test:
-    runs-on: ${{ inputs.platform }}
+  push_policy:
+    runs-on: ubuntu-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -22,25 +36,7 @@ jobs:
       - name: Install Chef Workstation
         uses: actionshub/chef-install@3.0.0
         with:
-          version: ${{ inputs.chef_workstation_version }}
-
-      - name: Run Kitchen Test
-        run: kitchen test
-        env:
-          CHEF_LICENSE: accept-no-persist
-          KITCHEN_LOCAL_YAML: kitchen.dokken.yml
-
-  generate-and-push:
-    needs: kitchen-test
-    runs-on: ${{ inputs.platform }}
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      - name: Install Chef Workstation
-        uses: actionshub/chef-install@3.0.0
-        with:
-          version: ${{ inputs.chef_workstation_version }}
+          version: latest
 
       - name: Generate Policyfile.lock.json
         run: chef install
@@ -48,29 +44,23 @@ jobs:
           CHEF_LICENSE: accept-no-persist
 
       - name: Write Chef config
-        env:
-          CHEF_CI_PEM: ${{ secrets.CHEF_CI_PEM }}
-          CICD_PEM: ${{ vars.DEVOPS_CICD_PEM }}
-          CICD_USER: ${{ vars.DEVOPS_CICD_USER }}
-          CHEF_SERVER_ORG_URL: ${{ vars.DEVOPS_CHEF_SERVER_ORG_URL }}
         run: |
-          echo "$CHEF_CI_PEM" | tr -d '\r' > "$CICD_PEM"
+          # Use the secret passed in from the caller
+          echo "${{ secrets.chef_ci_pem }}" | tr -d '\r' > "${{ inputs.chef_pem_path }}"
+          
           cat > .chef_config <<EOF
-          chef_server_url   "${CHEF_SERVER_ORG_URL}"
-          node_name         "${CICD_USER}"
-          client_key        "${CICD_PEM}"
+          chef_server_url   "${{ inputs.chef_server_org_url }}"
+          node_name         "${{ inputs.chef_user }}"
+          client_key        "${{ inputs.chef_pem_path }}"
           EOF
 
-      - name: Push Policyfile to dev
+      - name: Push Policyfile
         run: |
-          echo "Pushing policy lock file to ${CHEF_SERVER_ORG_URL} using .chef_config"
-          chef push dev Policyfile.lock.json --config .chef_config
+          echo "Pushing policy lock file to ${{ inputs.chef_server_org_url }}..."
+          chef push ${{ inputs.policy_name }} Policyfile.lock.json --config .chef_config
         env:
           CHEF_LICENSE: accept-no-persist
-          CHEF_SERVER_ORG_URL: ${{ vars.DEVOPS_CHEF_SERVER_ORG_URL }}
-          CICD_USER: ${{ vars.DEVOPS_CICD_USER }}
-          CICD_PEM: ${{ vars.DEVOPS_CICD_PEM }}
 
       - name: Cleanup
         if: always()
-        run: rm -f "${{ vars.DEVOPS_CICD_PEM }}" .chef_config
+        run: rm -f "${{ inputs.chef_pem_path }}" .chef_config
