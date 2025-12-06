@@ -28,12 +28,12 @@ jobs:
 
       - name: Write Chef config
         run: |
-          echo "${{ secrets.CHEF_CI_PEM }}" | tr -d '\r' > "$CICD_PEM"
+          echo "${{ secrets.CHEF_CI_PEM }}" | tr -d '\r' > key.pem
           
           cat > .chef_config <<EOF
           chef_server_url   "${{ vars.DEVOPS_CHEF_SERVER_ORG_URL }}"
           node_name         "${{ vars.DEVOPS_CICD_USER }}"
-          client_key        "${CICD_PEM}"
+          client_key        "key.pem"
           EOF
 
       - name: Push Policyfile
