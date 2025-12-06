@@ -1,30 +1,13 @@
 ---
 name: Push Policyfile to Chef Server
-
 on:
   workflow_call:
     inputs:
-      chef_server_org_url:
-        required: true
-        type: string
-        description: "The Chef Server Organization URL"
-      chef_user:
-        required: true
-        type: string
-        description: " The Chef User ID"
-      chef_pem_path:
-        required: false
-        type: string
-        description: "Where to save the temporary PEM file"
       policy_name:
         required: false
         type: string
         default: "dev"
-        description: "The policy group to push to (default: dev)"
-    secrets:
-      chef_ci_pem:
-        required: true
-        description: "The content of the PEM key"
+        description: "The policy group to push to (dev, stage, prod)"
 
 jobs:
   push_policy:
@@ -45,22 +28,21 @@ jobs:
 
       - name: Write Chef config
         run: |
-          # Use the secret passed in from the caller
-          echo "${{ secrets.chef_ci_pem }}" | tr -d '\r' > "${{ inputs.chef_pem_path }}"
+          echo "${{ secrets.CHEF_CI_PEM }}" | tr -d '\r' > "$CICD_PEM"
           
           cat > .chef_config <<EOF
-          chef_server_url   "${{ inputs.chef_server_org_url }}"
-          node_name         "${{ inputs.chef_user }}"
-          client_key        "${{ inputs.chef_pem_path }}"
+          chef_server_url   "${{ vars.DEVOPS_CHEF_SERVER_ORG_URL }}"
+          node_name         "${{ vars.DEVOPS_CICD_USER }}"
+          client_key        "${CICD_PEM}"
           EOF
 
       - name: Push Policyfile
         run: |
-          echo "Pushing policy lock file to ${{ inputs.chef_server_org_url }}..."
+          echo "Pushing policy lock file to ${{ vars.DEVOPS_CHEF_SERVER_ORG_URL }}..."
           chef push ${{ inputs.policy_name }} Policyfile.lock.json --config .chef_config
         env:
           CHEF_LICENSE: accept-no-persist
 
       - name: Cleanup
         if: always()
-        run: rm -f "${{ inputs.chef_pem_path }}" .chef_config
+        run: rm -f key.pem .chef_config
