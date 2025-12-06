@@ -3,7 +3,7 @@ name: Push Policyfile to Chef Server
 on:
   workflow_call:
     inputs:
-      policy_name:
+      policy_group:
         required: false
         type: string
         default: "dev"
@@ -39,7 +39,7 @@ jobs:
       - name: Push Policyfile
         run: |
           echo "Pushing policy lock file to ${{ vars.DEVOPS_CHEF_SERVER_ORG_URL }}..."
-          chef push ${{ inputs.policy_name }} Policyfile.lock.json --config .chef_config
+          chef push ${{ inputs.policy_group }} Policyfile.lock.json --config .chef_config
         env:
           CHEF_LICENSE: accept-no-persist
 
