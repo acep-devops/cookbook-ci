@@ -9,10 +9,10 @@ on:
         required: false
         default: 'default'
       os_list:
-        description: 'JSON string array of OS platforms to add to the Test Kitchen matrix (''["ubuntu-24.04", "ubuntu-22.04"]'').'
+        description: 'JSON string array of OS platforms to add to the Test Kitchen matrix (''["ubuntu-2404", "ubuntu-2204"]'').'
         type: string
         required: false
-        default: '["ubuntu-24.04"]'
+        default: '["ubuntu-2404"]'
     secrets:
       RAILS_MASTER_KEY:
         required: false
