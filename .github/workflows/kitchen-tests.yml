@@ -1,0 +1,44 @@
+name: Reusable Kitchen Tests
+
+on:
+  workflow_call:
+    inputs:
+      suite:
+        description: 'Test Kitchen suites to run'
+        type: string
+        required: false
+        default: 'default'
+      os_list:
+        description: 'JSON string array of OS platforms to add to the Test Kitchen matrix (''["ubuntu-24.04", "ubuntu-22.04"]'').'
+        type: string
+        required: false
+        default: '["ubuntu-24.04"]'
+    secrets:
+      RAILS_MASTER_KEY:
+        required: false
+
+jobs:
+  run-kitchen-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.os_list) }}
+    steps:        
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install Chef
+        uses: actionshub/chef-install@3.0.0
+
+      - name: Debug Versions
+        run: chef -v
+
+      - name: Test Kitchen
+        uses: actionshub/test-kitchen@main
+        with:
+          suite: ${{ inputs.suite }}
+          os: ${{ matrix.os }}
+        env:
+          CHEF_LICENSE: accept-no-persist
+          RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
