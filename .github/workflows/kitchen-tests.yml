@@ -35,7 +35,7 @@ jobs:
         run: chef -v
 
       - name: Test Kitchen
-        uses: actionshub/test-kitchen@main
+        uses: actionshub/test-kitchen@3
         with:
           suite: ${{ inputs.suite }}
           os: ${{ matrix.os }}
