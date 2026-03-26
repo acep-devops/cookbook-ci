@@ -22,7 +22,7 @@ jobs:
     runs-on: ${{ inputs.platform }}
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Install Chef
         uses: actionshub/chef-install@3.0.0
         with:
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Install Chef
         uses: actionshub/chef-install@3.0.0
         with:
@@ -61,6 +61,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Run yaml Lint
         uses: actionshub/yamllint@main
