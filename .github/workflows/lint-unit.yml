@@ -27,9 +27,6 @@ jobs:
         uses: actionshub/chef-install@3.0.0
         with:
           version: ${{ inputs.chef_workstation_version }}
-      - name: Install Gems
-        run: chef gem install -N ${{ inputs.gems }}
-        if: ${{ inputs.gems }}
         env:
           CHEF_LICENSE: accept-no-persist
       - name: Run RSpec
