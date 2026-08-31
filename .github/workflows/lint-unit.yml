@@ -15,8 +15,6 @@ on:
         required: false
         type: string
         default: "latest"
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   rspec:

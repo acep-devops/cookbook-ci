@@ -8,8 +8,6 @@ on:
         type: string
         default: "dev"
         description: "The policy group to push to (dev, stage, prod)"
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   push_policy:
