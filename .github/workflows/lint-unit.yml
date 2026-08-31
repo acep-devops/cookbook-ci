@@ -22,9 +22,9 @@ jobs:
     runs-on: ${{ inputs.platform }}
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Install Chef
-        uses: actionshub/chef-install@3.0.0
+        uses: actionshub/chef-install@5.0.2
         with:
           version: ${{ inputs.chef_workstation_version }}
       - name: Install Gems
@@ -37,7 +37,7 @@ jobs:
         env:
           CHEF_LICENSE: accept-no-persist
       - name: RSpec Report
-        uses: SonicGarden/rspec-report-action@v5
+        uses: SonicGarden/rspec-report-action@v6.0.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           json-path: tmp/rspec_results.json
@@ -47,9 +47,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Install Chef
-        uses: actionshub/chef-install@3.0.0
+        uses: actionshub/chef-install@5.0.2
         with:
           version: ${{ inputs.chef_workstation_version }}
       - name: Run Cookstyle
@@ -61,6 +61,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Run yaml Lint
         uses: actionshub/yamllint@main
